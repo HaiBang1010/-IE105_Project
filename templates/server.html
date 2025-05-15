@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        .container {
+            margin-top: 2rem;
+        }
+
+        .card {
+            margin-bottom: 1rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: none;
+        }
+
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid rgba(0, 0, 0, .125);
+        }
+
+        .status {
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 5px;
+        }
+
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #dc3545;
+            transition: background-color 0.3s ease;
+        }
+
+        .status-indicator.running {
+            background-color: #28a745;
+        }
+
+        .server-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        #log-container {
+            font-family: monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem;
+            border-radius: 5px;
+        }
+
+        .progress {
+            height: 25px;
+            margin: 1rem 0;
+        }
+
+        .progress-bar {
+            transition: width 0.6s ease;
+        }
+
+        .verdict-card {
+            border-left: 5px solid;
+            margin-bottom: 1.5rem;
+        }
+
+        .verdict-card.benign {
+            border-left-color: #28a745;
+        }
+
+        .verdict-card.malware {
+            border-left-color: #dc3545;
+        }
+
+        .risk-indicator {
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .permission-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .permission-item:last-child {
+            border-bottom: none;
+        }
+
+        .permission-badge {
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .component-card {
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .component-card h3 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #0d6efd;
+        }
+
+        .tab-content {
+            background-color: white;
+            border-radius: 0 0 5px 5px;
+        }
+
+        .nav-tabs .nav-link {
+            color: #495057;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: #0d6efd;
+            font-weight: 500;
+        }
+
+        .analysis-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .analysis-header i {
+            font-size: 2rem;
+        }
+
+        .analysis-header.benign i {
+            color: #28a745;
+        }
+
+        .analysis-header.malware i {
+            color: #dc3545;
+        }
+
+        .score-card {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 1rem;
+        }
+
+        .score-label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .score-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .btn-check:checked+.btn-outline-primary {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        #detailsResult {
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .text-danger {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .text-success {
+            color: #28a745;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="mb-4">Server Dashboard</h1>
+
+        <!-- Model Management Section -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Model Management</h5>
+            </div>
+            <div class="card-body">
+                <button id="getModelsBtn" class="btn btn-primary">Get Models</button>
+                <div id="modelStatus" class="status" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Server Control Section -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Server Control</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="server-controls">
+                            <button class="btn btn-primary" id="start-server">Start Server</button>
+                            <button class="btn btn-danger" id="stop-server" disabled>Stop Server</button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="server-status">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="status-indicator me-2"></div>
+                                <span id="server-status-text">Server Status: Stopped</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="server-message" class="alert mt-3" style="display: none;"></div>
+                <div class="server-logs mt-3">
+                    <h6>Server Logs:</h6>
+                    <div id="log-container" class="bg-dark text-light p-3 rounded"
+                        style="height: 200px; overflow-y: auto;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- APK Analysis Section -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">APK Analysis</h5>
+            </div>
+            <div class="card-body">
+                <form id="apkForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="apkFile" class="form-label">Select APK File (Max 16MB)</label>
+                        <input type="file" class="form-control" id="apkFile" accept=".apk" required>
+                        <div class="form-text">Only .apk files are allowed</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="analyzeBtn">Analyze APK</button>
+                </form>
+
+                <!-- Progress Bar (Hidden by default) -->
+                <div class="progress mt-3" style="display: none;" id="analysisProgress">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                        style="width: 0%"></div>
+                </div>
+
+                <!-- Results Section -->
+                <div id="analysisResult" class="mt-4" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="analysis-header">
+                                <i class="bi" id="verdictIcon"></i>
+                                <div>
+                                    <h5 class="mb-0" id="verdictTitle"></h5>
+                                    <p class="text-muted mb-0" id="verdictNote"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Scores Section -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="score-card">
+                                        <div class="score-label">
+                                            <i class="bi bi-graph-up"></i> Model Confidence
+                                        </div>
+                                        <div class="progress">
+                                            <div id="confidenceBar" class="progress-bar" role="progressbar"></div>
+                                        </div>
+                                        <div class="score-value" id="confidenceText"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="score-card">
+                                        <div class="score-label">
+                                            <i class="bi bi-shield-exclamation"></i> Risk Score
+                                        </div>
+                                        <div class="progress">
+                                            <div id="riskBar" class="progress-bar bg-warning" role="progressbar"></div>
+                                        </div>
+                                        <div class="score-value" id="riskText"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Risk Indicators Section -->
+                            <div id="riskIndicators" class="mb-4" style="display: none;">
+                                <h6><i class="bi bi-exclamation-triangle-fill"></i> Risk Indicators</h6>
+                                <div id="riskList"></div>
+                            </div>
+
+                            <!-- APK Information Tabs -->
+                            <ul class="nav nav-tabs" id="apkInfoTabs" role="tablist">
+                                <li class="nav-item">
+                                    <a class="nav-link active" id="basic-tab" data-bs-toggle="tab" href="#basic"
+                                        role="tab">
+                                        <i class="bi bi-info-circle"></i> Basic Info
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="permissions-tab" data-bs-toggle="tab" href="#permissions"
+                                        role="tab">
+                                        <i class="bi bi-key"></i> Permissions
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="components-tab" data-bs-toggle="tab" href="#components"
+                                        role="tab">
+                                        <i class="bi bi-grid-3x3-gap"></i> Components
+                                    </a>
+                                </li>
+                            </ul>
+                            <div class="tab-content p-3">
+                                <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="fw-bold"><i class="bi bi-file-earmark"></i> File
+                                                    Name</label>
+                                                <p id="fileName" class="mb-0"></p>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="fw-bold"><i class="bi bi-box"></i> Package Name</label>
+                                                <p id="packageName" class="mb-0"></p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="fw-bold"><i class="bi bi-app"></i> App Name</label>
+                                                <p id="appName" class="mb-0"></p>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="fw-bold"><i class="bi bi-hdd"></i> File Size</label>
+                                                <p id="fileSize" class="mb-0"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="permissions" role="tabpanel">
+                                    <div class="mb-3">
+                                        <span class="badge bg-primary" id="totalPermissions"></span>
+                                        <span class="badge bg-secondary ms-2" id="matchedPermissions"></span>
+                                    </div>
+                                    <div id="permissionsList" class="list-group"></div>
+                                </div>
+                                <div class="tab-pane fade" id="components" role="tabpanel">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="component-card">
+                                                <i class="bi bi-window text-primary mb-2" style="font-size: 2rem;"></i>
+                                                <h3 id="activitiesCount">0</h3>
+                                                <p class="text-muted mb-0">Activities</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="component-card">
+                                                <i class="bi bi-gear text-primary mb-2" style="font-size: 2rem;"></i>
+                                                <h3 id="servicesCount">0</h3>
+                                                <p class="text-muted mb-0">Services</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="component-card">
+                                                <i class="bi bi-broadcast text-primary mb-2"
+                                                    style="font-size: 2rem;"></i>
+                                                <h3 id="receiversCount">0</h3>
+                                                <p class="text-muted mb-0">Receivers</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Alert (Hidden by default) -->
+                <div class="alert r mt-3" id="errorAlert" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Connected Clients Section -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Connected Clients</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">Benign Client</h6>
+                                <p class="card-text" id="benignStatus">Status: Not Connected</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">Malware Client</h6>
+                                <p class="card-text" id="malwareStatus">Status: Not Connected</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Server Control functionality
+        const startServerBtn = document.getElementById('start-server');
+        const stopServerBtn = document.getElementById('stop-server');
+        const serverStatusText = document.getElementById('server-status-text');
+        const serverMessage = document.getElementById('server-message');
+        const statusIndicator = document.querySelector('.status-indicator');
+        const logContainer = document.getElementById('log-container');
+
+        function updateServerStatus(running) {
+            startServerBtn.disabled = running;
+            stopServerBtn.disabled = !running;
+            serverStatusText.textContent = `Server Status: ${running ? 'Running' : 'Stopped'}`;
+            statusIndicator.classList.toggle('running', running);
+        }
+
+        function showMessage(message, isError = false) {
+            serverMessage.textContent = message;
+            serverMessage.className = `alert ${isError ? 'alert-danger' : 'alert-success'}`;
+            serverMessage.style.display = 'block';
+            setTimeout(() => {
+                serverMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        function appendLog(log) {
+            const logEntry = document.createElement('div');
+            logEntry.textContent = log;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        startServerBtn.addEventListener('click', async () => {
+            try {
+                startServerBtn.disabled = true;
+                const response = await fetch('/start_server');
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    updateServerStatus(true);
+                    showMessage(data.message);
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (error) {
+                updateServerStatus(false);
+                showMessage(error.message, true);
+                startServerBtn.disabled = false;
+            }
+        });
+
+        stopServerBtn.addEventListener('click', async () => {
+            try {
+                stopServerBtn.disabled = true;
+                const response = await fetch('/stop_server');
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    updateServerStatus(false);
+                    showMessage(data.message);
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (error) {
+                showMessage(error.message, true);
+                stopServerBtn.disabled = false;
+            }
+        });
+
+        // Get Models functionality
+        document.getElementById('getModelsBtn').addEventListener('click', async () => {
+            const statusDiv = document.getElementById('modelStatus');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status';
+            statusDiv.textContent = 'Combining models...';
+
+            try {
+                const response = await fetch('/get_models', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = 'Models combined successfully!';
+                } else {
+                    throw new Error(data.error || 'Failed to combine models');
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `Error: ${error.message}`;
+            }
+        });
+
+        // APK Analysis functionality
+        document.getElementById('apkForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData();
+            const apkFile = document.getElementById('apkFile').files[0];
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const progressBar = document.getElementById('analysisProgress');
+            const progressBarInner = progressBar.querySelector('.progress-bar');
+            const resultDiv = document.getElementById('analysisResult');
+            const errorAlert = document.getElementById('errorAlert');
+
+            // Validate file
+            if (!apkFile) {
+                showError('Please select an APK file');
+                return;
+            }
+
+            if (!apkFile.name.endsWith('.apk')) {
+                showError('Invalid file type. Please select an APK file');
+                return;
+            }
+
+            if (apkFile.size > 16 * 1024 * 1024) {
+                showError('File size exceeds 16MB limit');
+                return;
+            }
+
+            try {
+                // Reset UI
+                errorAlert.style.display = 'none';
+                resultDiv.style.display = 'none';
+                progressBar.style.display = 'block';
+                analyzeBtn.disabled = true;
+                progressBarInner.style.width = '0%';
+
+                // Prepare form data
+                formData.append('apk_file', apkFile);
+
+                // Simulate progress while analyzing
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += 5;
+                    if (progress <= 90) {
+                        progressBarInner.style.width = `${progress}%`;
+                    }
+                }, 500);
+
+                // Send analysis request
+                const response = await fetch('/analyze_apk', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                clearInterval(progressInterval);
+
+                if (data.status === 'success') {
+                    // Show 100% progress
+                    progressBarInner.style.width = '100%';
+                    setTimeout(() => {
+                        progressBar.style.display = 'none';
+
+                        // Update verdict section
+                        const isMalware = data.result.is_malware;
+                        const verdictIcon = document.getElementById('verdictIcon');
+                        const analysisHeader = document.querySelector('.analysis-header');
+
+                        verdictIcon.className = `bi ${isMalware ? 'bi-shield-fill-x' : 'bi-shield-fill-check'}`;
+                        analysisHeader.className = `analysis-header ${isMalware ? 'malware' : 'benign'}`;
+
+                        document.getElementById('verdictTitle').textContent =
+                            isMalware ? 'Malware Detected' : 'Benign Application';
+
+                        // Add note if there are special conditions
+                        let note = '';
+                        if (!data.result.model_prediction && isMalware) {
+                            note = 'High risk indicators detected despite benign model prediction';
+                        } else if (!isMalware && data.result.risk_score >= 3) {
+                            note = 'Contains suspicious patterns but classified as benign';
+                        }
+                        document.getElementById('verdictNote').textContent = note;
+
+                        // Update confidence with animation
+                        const confidence = data.result.confidence * 100;
+                        const confidenceBar = document.getElementById('confidenceBar');
+                        confidenceBar.style.width = '0%';
+                        confidenceBar.className = `progress-bar ${confidence < 70 ? 'bg-warning' : 'bg-info'}`;
+                        setTimeout(() => {
+                            confidenceBar.style.width = `${confidence}%`;
+                        }, 100);
+                        document.getElementById('confidenceText').textContent =
+                            `${confidence.toFixed(2)}%`;
+
+                        // Update risk score with animation
+                        const riskPercentage = (data.result.risk_score / 5) * 100;
+                        const riskBar = document.getElementById('riskBar');
+                        riskBar.style.width = '0%';
+                        riskBar.className =
+                            `progress-bar ${data.result.risk_score >= 3 ? 'bg-danger' : 'bg-warning'}`;
+                        setTimeout(() => {
+                            riskBar.style.width = `${riskPercentage}%`;
+                        }, 100);
+                        document.getElementById('riskText').textContent =
+                            `${data.result.risk_score}/5`;
+
+                        // Update risk indicators
+                        const riskIndicators = document.getElementById('riskIndicators');
+                        const riskList = document.getElementById('riskList');
+                        if (data.result.risks && data.result.risks.length > 0) {
+                            riskList.innerHTML = data.result.risks.map(risk =>
+                                `<div class="risk-indicator">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                    ${risk}
+                                </div>`
+                            ).join('');
+                            riskIndicators.style.display = 'block';
+                        } else {
+                            riskIndicators.style.display = 'none';
+                        }
+
+                        // Update basic info
+                        const basicInfo = data.result.details.basic_info;
+                        document.getElementById('fileName').textContent = basicInfo.filename;
+                        document.getElementById('packageName').textContent = basicInfo.package;
+                        document.getElementById('appName').textContent = basicInfo.app_name;
+                        document.getElementById('fileSize').textContent =
+                            formatFileSize(basicInfo.file_size);
+
+                        // Update permissions with badges
+                        const permissions = data.result.details.permissions;
+                        document.getElementById('totalPermissions').textContent =
+                            `Total: ${permissions.total}`;
+                        document.getElementById('matchedPermissions').textContent =
+                            `Analyzed: ${permissions.matched}`;
+
+                        document.getElementById('permissionsList').innerHTML =
+                            permissions.list.map(perm =>
+                                `<div class="permission-item">
+                                    <span class="permission-badge badge ${isDangerousPermission(perm) ?
+                                    'bg-danger' : 'bg-secondary'}">
+                                        ${isDangerousPermission(perm) ? 'Dangerous' : 'Normal'}
+                                    </span>
+                                    <span class="permission-name">${perm}</span>
+                                </div>`
+                            ).join('');
+
+                        // Update components with animation
+                        const components = data.result.details.components;
+                        animateCounter('activitiesCount', components.activities);
+                        animateCounter('servicesCount', components.services);
+                        animateCounter('receiversCount', components.receivers);
+
+                        resultDiv.style.display = 'block';
+                    }, 500);
+                } else {
+                    // Show error message
+                    showError(data.message || 'Analysis failed');
+                }
+            } catch (error) {
+                clearInterval(progressInterval);
+                progressBar.style.display = 'none';
+                showError(error.message);
+            } finally {
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        function showError(message) {
+            const errorAlert = document.getElementById('errorAlert');
+            errorAlert.textContent = message;
+            errorAlert.style.display = 'block';
+        }
+
+        // Update client status periodically
+        function updateClientStatus() {
+            fetch('/client_status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('benignStatus').textContent =
+                        `Status: ${data.benign ? 'Connected' : 'Not Connected'}`;
+                    document.getElementById('malwareStatus').textContent =
+                        `Status: ${data.malware ? 'Connected' : 'Not Connected'}`;
+                })
+                .catch(error => console.error('Error fetching client status:', error));
+        }
+
+        // Update status every 5 seconds
+        setInterval(updateClientStatus, 5000);
+        updateClientStatus(); // Initial update
+
+        // Polling for server logs
+        function pollLogs() {
+            fetch('/get_logs')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success' && data.logs.length > 0) {
+                        data.logs.forEach(log => appendLog(log));
+                    }
+                })
+                .catch(console.error);
+        }
+
+        // Poll for logs every 2 seconds
+        setInterval(pollLogs, 2000);
+
+        // Initial status check
+        fetch('/get_status')
+            .then(response => response.json())
+            .then(data => {
+                updateServerStatus(data.server.running);
+            })
+            .catch(console.error);
+
+        // Add helper functions
+        function formatFileSize(size) {
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let i = 0;
+            while (size >= 1024 && i < units.length - 1) {
+                size /= 1024;
+                i++;
+            }
+            return `${size.toFixed(2)} ${units[i]}`;
+        }
+
+        function isDangerousPermission(permission) {
+            const dangerousPermissions = [
+                'ACCESS_FINE_LOCATION',
+                'READ_PHONE_STATE',
+                'SYSTEM_ALERT_WINDOW',
+                'GET_TASKS',
+                'READ_SMS',
+                'SEND_SMS',
+                'RECEIVE_BOOT_COMPLETED',
+                'READ_CONTACTS'
+            ];
+            return dangerousPermissions.some(dp => permission.includes(dp));
+        }
+
+        // Add counter animation function
+        function animateCounter(elementId, targetValue) {
+            const element = document.getElementById(elementId);
+            const duration = 1000; // 1 second
+            const steps = 20;
+            const stepValue = targetValue / steps;
+            let currentStep = 0;
+
+            const interval = setInterval(() => {
+                currentStep++;
+                if (currentStep === steps) {
+                    element.textContent = targetValue;
+                    clearInterval(interval);
+                } else {
+                    element.textContent = Math.floor(stepValue * currentStep);
+                }
+            }, duration / steps);
+        }
+    </script>
+</body>
+
+</html>

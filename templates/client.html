@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container {
+            margin-top: 2rem;
+        }
+
+        .card {
+            margin-bottom: 1rem;
+        }
+
+        .status {
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 5px;
+        }
+
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .status-connected {
+            background-color: #28a745;
+        }
+
+        .status-disconnected {
+            background-color: #dc3545;
+        }
+
+        .metrics-container {
+            margin-top: 20px;
+        }
+
+        .apk-analysis {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .result-container {
+            margin-top: 15px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+
+        .loading {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .loading-spinner {
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+
+        .log-container {
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            background-color: #1e1e1e;
+            color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+            border-bottom: 1px solid #333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="mb-4">Client Dashboard - {{ client_type|title }}</h1>
+
+        <!-- Client Selection -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Client Control</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ client_type|title }} Client</h6>
+                                <p class="card-text">Train model with {{ client_type }} APK data</p>
+                                <button id="startClientBtn" class="btn btn-primary">Start {{ client_type|title }}
+                                    Client</button>
+                                <div id="clientStatus" class="status" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Training Progress -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Training Progress</h5>
+            </div>
+            <div class="card-body">
+                <div class="progress mb-3">
+                    <div id="trainingProgress" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
+                <div id="trainingStatus" class="status" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Start Client
+        document.getElementById('startClientBtn').addEventListener('click', async () => {
+            const statusDiv = document.getElementById('clientStatus');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status';
+            statusDiv.textContent = 'Starting client...';
+
+            try {
+                const response = await fetch('/start_client', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ type: '{{ client_type }}' })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = 'Client started successfully!';
+                    startTrainingProgress();
+                } else {
+                    throw new Error(data.error || 'Failed to start client');
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `Error: ${error.message}`;
+            }
+        });
+
+        // Training progress
+        function startTrainingProgress() {
+            const progressBar = document.getElementById('trainingProgress');
+            const statusDiv = document.getElementById('trainingStatus');
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status';
+
+            let progress = 0;
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch('/training_status');
+                    const data = await response.json();
+
+                    if (data.completed) {
+                        clearInterval(interval);
+                        progressBar.style.width = '100%';
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = 'Training completed successfully!';
+                    } else {
+                        progress = data.progress;
+                        progressBar.style.width = `${progress}%`;
+                        statusDiv.textContent = `Training in progress: ${progress}%`;
+                    }
+                } catch (error) {
+                    clearInterval(interval);
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `Error: ${error.message}`;
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+
+</html>

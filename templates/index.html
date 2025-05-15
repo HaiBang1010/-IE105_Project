@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Federated Learning Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container {
+            margin-top: 2rem;
+        }
+
+        .card {
+            margin-bottom: 1rem;
+        }
+
+        .client-card {
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+
+        .client-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .client-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Federated Learning Dashboard</h1>
+
+        <div class="row justify-content-center">
+            <!-- Server Card -->
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <div class="client-icon">🖥️</div>
+                        <h5 class="card-title">Server</h5>
+                        <p class="card-text">Manage models and analyze APKs</p>
+                        <a href="/server" class="btn btn-primary">Open Server</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <!-- Benign Client Card -->
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 client-card" onclick="openClient('benign')">
+                    <div class="card-body text-center">
+                        <div class="client-icon">✅</div>
+                        <h5 class="card-title">Client 1 - Benign</h5>
+                        <p class="card-text">Train model with benign APK data</p>
+                        <button class="btn btn-success">Open Client 1</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Malware Client Card -->
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 client-card" onclick="openClient('malware')">
+                    <div class="card-body text-center">
+                        <div class="client-icon">⚠️</div>
+                        <h5 class="card-title">Client 2 - Malware</h5>
+                        <p class="card-text">Train model with malware APK data</p>
+                        <button class="btn btn-danger">Open Client 2</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function openClient(type) {
+            const url = `/client?type=${type}`;
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+
+</html>
