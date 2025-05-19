@@ -1,59 +1,98 @@
-# Federated Learning with Flower Framework
+# Android APK Malware Detection System
 
-This project implements federated learning using the Flower Framework to train a malware detection model on the Drebin dataset.
+Hệ thống phân tích và phát hiện phần mềm độc hại Android dựa trên Machine Learning, sử dụng phân tích tĩnh các file APK.
 
-## Setup
+## Yêu cầu hệ thống
 
-0. Run env
+- Python 3.8 trở lên
+- Git
+- Windows/Linux/macOS
+
+## Cài đặt
+
+1. Clone repository:
 ```bash
-source venv/Scripts/activate
+git clone <your-repo-url>
+cd -IE105_Project
 ```
 
-1. Install the required dependencies:
+2. Tạo và kích hoạt môi trường ảo:
+```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# Linux/macOS
+python3 -m venv venv
+source venv/bin/activate
+```
+
+3. Cài đặt các thư viện cần thiết:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Running the Project
+## Cấu trúc thư mục
 
-1. Start the server in one terminal:
-```bash
-python server.py
+```
+-IE105_Project/
+├── data/                  # Thư mục chứa dữ liệu (APK files)
+├── models/               # Thư mục chứa model đã train
+│   └── server_model.pt   # Model chính để phân tích
+├── analyze_apk.py        # Script phân tích APK
+└── requirements.txt      # File cài đặt dependencies
 ```
 
-2. Start multiple clients in different terminals (at least 2 clients are required):
+## Cách sử dụng
+
+1. Đặt file APK cần phân tích vào thư mục `data/`
+
+2. Chạy phân tích APK:
 ```bash
-python client.py
+python analyze_apk.py path/to/your/app.apk
 ```
 
-You can start multiple clients by running the client script in different terminals. Each client will automatically get a different portion of the dataset.
+Ví dụ:
+```bash
+python analyze_apk.py data/example.apk
+```
 
-## Project Structure
+### Kết quả phân tích
 
-- `server.py`: Contains the Flower server implementation
-- `client.py`: Contains the client implementation with the neural network model
-- `requirements.txt`: Lists all required Python packages
-- `drebin-215-dataset-5560malware-9476-benign.csv`: The dataset file
+Hệ thống sẽ hiển thị báo cáo chi tiết bao gồm:
 
-## Model Architecture
+1. Thông tin cơ bản:
+   - Tên file
+   - Package name
+   - Tên ứng dụng
+   - Kích thước file
 
-The project uses a simple neural network with the following architecture:
-- Input layer: Size depends on the number of features
-- Hidden layer 1: 128 neurons with ReLU activation
-- Hidden layer 2: 64 neurons with ReLU activation
-- Output layer: 1 neuron with sigmoid activation
+2. Phân tích bảo mật:
+   - Kết luận (Malware/Benign)
+   - Độ tin cậy của model
+   - Điểm rủi ro
+   - Các chỉ báo rủi ro phát hiện được
 
-## Training Process
+3. Phân tích quyền:
+   - Tổng số quyền
+   - Các quyền nguy hiểm
+   - Danh sách quyền được sử dụng
 
-The federated learning process works as follows:
-1. The server initializes the global model
-2. Each client trains the model on their local data
-3. The server aggregates the model updates from all clients
-4. The process repeats for the specified number of rounds
+4. Phân tích thành phần:
+   - Số lượng Activities
+   - Số lượng Services
+   - Số lượng Broadcast Receivers
 
-The training includes:
-- 5 epochs per round for each client
-- 3 federated learning rounds
-- Batch size of 32
-- Adam optimizer
-- Binary Cross Entropy loss function 
+## Các mã lỗi
+
+- `[ERROR] Usage: python analyze_apk.py <apk_path>`: Thiếu đường dẫn file APK
+- `[ERROR] APK file not found`: File APK không tồn tại
+- `[ERROR] Failed to extract APK information`: Không thể trích xuất thông tin từ APK
+- `[ERROR] Server model not found`: Không tìm thấy model phân tích
+
+## Lưu ý
+
+- Đảm bảo file APK hợp lệ và có thể đọc được
+- Model sử dụng API Level 10 làm mặc định nếu không xác định được API Level của APK
+- Các file APK và thư mục data/ không được commit lên Git
+

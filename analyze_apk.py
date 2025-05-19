@@ -284,7 +284,7 @@ if __name__ == "__main__":
         if len(sys.argv) != 2:
             print("\n[ERROR] Usage: python analyze_apk.py <apk_path>")
             sys.exit(1)
-            
+        
         apk_path = sys.argv[1]
         
         if not os.path.exists(apk_path):
@@ -296,6 +296,11 @@ if __name__ == "__main__":
             print(f"\n[ERROR] {result['message']}")
             sys.exit(1)
         sys.exit(0)
+    
+    except Exception as e:
+        print(f"\n[ERROR] Unexpected error: {str(e)}")
+        sys.exit(1)
+    
     finally:
         # Restore stderr
         sys.stderr = old_stderr 
